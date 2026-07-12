@@ -1,0 +1,22 @@
+{
+  "name": "discord-bot-template",
+  "version": "1.0.0",
+  "description": "A template for a discord.js bot",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "author": "xander",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.18.1",
+    "boxen": "^5.1.2",
+    "chalk": "^4.1.2",
+    "discord.js": "^14.24.2",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "mongoose": "^8.10.0",
+    "rozod": "^6.7.1"
+  }
+}
