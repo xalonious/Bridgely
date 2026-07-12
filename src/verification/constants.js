@@ -11,5 +11,5 @@ export const VERIFICATION_STATUS = Object.freeze({
   EXPIRED: "EXPIRED",
 });
 
-export const VERIFICATION_SESSION_MS = 10 * 60 * 1000;
+export const VERIFICATION_SESSION_MS = 5 * 60 * 1000;
 export const VERIFICATION_COLOR = 0x5865f2;

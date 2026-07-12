@@ -63,7 +63,7 @@ function armTimeout(session) {
       await session.commandInteraction.editReply(
         buildStatus(
           "⌛ Setup Session Expired",
-          "This setup session was inactive for 15 minutes. Run `/setup` to start again.",
+          "This setup session was inactive for 2 minutes. Run `/setup` to start again.",
           0x99aab5
         )
       );

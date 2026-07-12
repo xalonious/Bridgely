@@ -1,5 +1,5 @@
 export const SETUP_COLOR = 0x5865f2;
-export const SETUP_TIMEOUT_MS = 15 * 60 * 1000;
+export const SETUP_TIMEOUT_MS = 2 * 60 * 1000;
 export const DISCORD_ROLE_NAME_LIMIT = 100;
 export const DISCORD_NICKNAME_LIMIT = 32;
 export const CONFIG_SCHEMA_VERSION = 1;
