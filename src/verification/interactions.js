@@ -447,7 +447,10 @@ async function handleMethodSelection(interaction, parsed) {
   const method = interaction.values[0];
   if (method === VERIFICATION_METHODS.GAME) {
     if (!isGameVerificationEnabled()) {
-      await privateReply(interaction, "Game verification is not enabled.");
+      await privateReply(
+        interaction,
+        "Game verification has been disabled for this server. Please use the Roblox profile code method instead."
+      );
       return;
     }
     await interaction.showModal(

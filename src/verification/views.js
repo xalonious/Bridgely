@@ -13,44 +13,41 @@ import { VERIFICATION_COLOR, VERIFICATION_METHODS } from "./constants.js";
 import { getGameVerificationConfig } from "../server/config.js";
 
 export function buildMethodSelection(ownerId) {
-  const gameEnabled = getGameVerificationConfig().ready;
   const embed = new EmbedBuilder()
     .setColor(VERIFICATION_COLOR)
     .setTitle("🔗 Verify with Bridgely")
     .setDescription(
       "Choose how you would like to connect your Discord account to Roblox."
     )
-    .addFields({
-      name: "📝 Roblox Profile Code",
-      value: "Place a short, temporary code in your Roblox profile About section.",
-    })
+    .addFields(
+      {
+        name: "📝 Roblox Profile Code",
+        value: "Place a short, temporary code in your Roblox profile About section.",
+      },
+      {
+        name: "🎮 Roblox Game",
+        value: "Verify instantly by joining the configured Roblox experience.",
+      }
+    )
     .setFooter({ text: "Your verification response is private" });
-
-  if (gameEnabled) {
-    embed.addFields({
-      name: "🎮 Roblox Game",
-      value: "Verify instantly by joining the configured Roblox experience.",
-    });
-  }
 
   const menu = new StringSelectMenuBuilder()
     .setCustomId(`bridgely:verify:method:${ownerId}`)
     .setPlaceholder("Choose a verification method")
-    .addOptions({
-      label: "Verify using a Roblox profile code",
-      description: "Add a secure code to your Roblox About section.",
-      value: VERIFICATION_METHODS.PROFILE_CODE,
-      emoji: { name: "📝" },
-    });
-
-  if (gameEnabled) {
-    menu.addOptions({
-      label: "Verify by joining a Roblox game",
-      description: "Join the verification experience.",
-      value: VERIFICATION_METHODS.GAME,
-      emoji: { name: "🎮" },
-    });
-  }
+    .addOptions(
+      {
+        label: "Verify using a Roblox profile code",
+        description: "Add a secure code to your Roblox About section.",
+        value: VERIFICATION_METHODS.PROFILE_CODE,
+        emoji: { name: "📝" },
+      },
+      {
+        label: "Verify by joining a Roblox game",
+        description: "Join the verification experience.",
+        value: VERIFICATION_METHODS.GAME,
+        emoji: { name: "🎮" },
+      }
+    );
 
   return {
     embeds: [embed],
