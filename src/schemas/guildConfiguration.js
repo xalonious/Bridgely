@@ -17,6 +17,7 @@ const guildConfigurationSchema = new mongoose.Schema(
     robloxGroupName: { type: String, required: true },
     verifiedRoleName: { type: String, required: true },
     verifiedRoleId: { type: String, required: true },
+    nicknameEnabled: { type: Boolean, required: true, default: true },
     nicknameTemplate: { type: String, required: true },
     nicknameTemplateLabel: { type: String, required: true },
     roleMappings: { type: [roleMappingSchema], default: [] },

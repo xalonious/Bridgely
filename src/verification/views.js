@@ -224,6 +224,23 @@ export function buildMemberUpdated({
     "None — already up to date"
   );
   const removedRoles = formatRoleMentions(syncResult.removedRoles, "None");
+  const nicknameEnabled = syncResult.nicknameEnabled !== false;
+  const fields = [
+    { name: "➕ Added Roles", value: addedRoles, inline: true },
+    { name: "➖ Removed Roles", value: removedRoles, inline: true },
+  ];
+  if (nicknameEnabled) {
+    fields.push({
+      name: "🏷️ Nickname",
+      value: escapeMarkdown(syncResult.nickname || "Unchanged"),
+      inline: true,
+    });
+  }
+  fields.push({
+    name: "🎭 Roblox Group Roles",
+    value: escapeMarkdown(syncResult.groupRoleName),
+    inline: true,
+  });
 
   const embed = new EmbedBuilder()
     .setColor(syncResult.warnings.length ? 0xfee75c : 0x57f287)
@@ -235,22 +252,9 @@ export function buildMemberUpdated({
     .setDescription(
       isNewVerification
         ? `Welcome! Your Discord account is now connected to **@${escapeMarkdown(profile.username)}**.`
-        : `${isSelf ? "Your" : `<@${discordUserId}>'s`} roles and nickname were refreshed for **@${escapeMarkdown(profile.username)}**.`
+        : `${isSelf ? "Your" : `<@${discordUserId}>'s`} ${nicknameEnabled ? "roles and nickname were" : "roles were"} refreshed for **@${escapeMarkdown(profile.username)}**.`
     )
-    .addFields(
-      { name: "➕ Added Roles", value: addedRoles, inline: true },
-      { name: "➖ Removed Roles", value: removedRoles, inline: true },
-      {
-        name: "🏷️ Nickname",
-        value: escapeMarkdown(syncResult.nickname || "Unchanged"),
-        inline: true,
-      },
-      {
-        name: "🎭 Roblox Group Roles",
-        value: escapeMarkdown(syncResult.groupRoleName),
-        inline: true,
-      }
-    )
+    .addFields(fields)
     .setFooter({
       text: "Want to switch accounts? You can unlink at any time with /unlink",
     });

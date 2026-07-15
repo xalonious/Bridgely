@@ -10,6 +10,7 @@ import {
   escapeMarkdown,
 } from "discord.js";
 import {
+  NICKNAME_DISABLED_VALUE,
   NICKNAME_PREVIEW_VALUES,
   NICKNAME_TEMPLATES,
   ROLE_HANDLING,
@@ -233,29 +234,41 @@ function buildVerifiedRoleStep(session) {
 }
 
 function buildNicknameStep(session) {
-  const preview = renderNicknameTemplate(
-    session.nicknameTemplate,
-    NICKNAME_PREVIEW_VALUES
-  );
+  const preview = session.nicknameEnabled
+    ? renderNicknameTemplate(session.nicknameTemplate, NICKNAME_PREVIEW_VALUES)
+    : null;
   const nicknameEmbed = embed(
     "🏷️ Choose a Nickname Format",
-    "Select how verified members should be named. Nicknames are safely shortened to Discord's 32-character limit.",
+    "Select how verified members should be named, or disable nickname updates entirely. Nicknames are safely shortened to Discord's 32-character limit.",
     5
-  ).addFields(
-    { name: "📝 Selected Format", value: safe(session.nicknameTemplateLabel) },
-    { name: "👀 Preview", value: `**${safe(preview)}**` }
-  );
+  ).addFields({
+    name: "📝 Selected Format",
+    value: session.nicknameEnabled
+      ? safe(session.nicknameTemplateLabel)
+      : "Do not update nicknames",
+  });
+  if (preview) {
+    nicknameEmbed.addFields({ name: "👀 Preview", value: `**${safe(preview)}**` });
+  }
 
   const menu = new StringSelectMenuBuilder()
     .setCustomId(customId(session, "nickname_select"))
     .setPlaceholder("Choose a nickname format")
     .addOptions(
-      NICKNAME_TEMPLATES.map((option, index) => ({
+      ...NICKNAME_TEMPLATES.map((option, index) => ({
         label: option.label,
+        description: `Example: ${renderNicknameTemplate(option.value, NICKNAME_PREVIEW_VALUES)}`,
         value: option.value,
         emoji: { name: ["🔗", "💬", "🎮", "🎯", "✨", "🪪"][index] },
-        default: option.value === session.nicknameTemplate,
-      }))
+        default: session.nicknameEnabled && option.value === session.nicknameTemplate,
+      })),
+      {
+        label: "Do not update nicknames",
+        description: "Leave verified members' Discord nicknames unchanged.",
+        value: NICKNAME_DISABLED_VALUE,
+        emoji: { name: "🚫" },
+        default: !session.nicknameEnabled,
+      }
     );
 
   return {
@@ -268,10 +281,9 @@ function buildNicknameStep(session) {
 }
 
 function buildReviewStep(session) {
-  const preview = renderNicknameTemplate(
-    session.nicknameTemplate,
-    NICKNAME_PREVIEW_VALUES
-  );
+  const preview = session.nicknameEnabled
+    ? renderNicknameTemplate(session.nicknameTemplate, NICKNAME_PREVIEW_VALUES)
+    : null;
   const reviewEmbed = embed(
     "📋 Review Bridgely Setup",
     "Take one last look before continuing. **Nothing has been changed yet.** Confirm when everything looks right.",
@@ -288,16 +300,24 @@ function buildReviewStep(session) {
     { name: "✅ Verified Role", value: safe(session.verifiedRoleName), inline: true },
     {
       name: "🏷️ Nickname Format",
-      value: safe(session.nicknameTemplateLabel),
+      value: session.nicknameEnabled
+        ? safe(session.nicknameTemplateLabel)
+        : "Disabled",
       inline: true,
     },
-    { name: "👀 Nickname Preview", value: safe(preview), inline: true },
     {
       name: "💾 Existing Configuration",
       value: session.replacesExisting ? "Will be replaced" : "None",
       inline: true,
     }
   );
+  if (preview) {
+    reviewEmbed.addFields({
+      name: "👀 Nickname Preview",
+      value: safe(preview),
+      inline: true,
+    });
+  }
 
   return {
     embeds: [reviewEmbed],

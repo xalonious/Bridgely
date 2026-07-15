@@ -166,6 +166,7 @@ async function synchronizeVerifiedLink(interaction, link, existingProfile = null
   let syncResult = {
     addedRoles: [],
     removedRoles: [],
+    nicknameEnabled: true,
     nickname: linkedMember?.displayName || "Unchanged",
     warnings: [],
     groupRoleName: "Could not be checked",
@@ -190,6 +191,7 @@ async function synchronizeVerifiedLink(interaction, link, existingProfile = null
     );
     return { profile, syncResult };
   }
+  syncResult.nicknameEnabled = configuration.nicknameEnabled !== false;
 
   let membership = { roles: [], complete: false, warning: null };
   let groupMembershipKnown = true;

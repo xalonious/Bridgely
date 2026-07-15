@@ -107,31 +107,35 @@ export async function syncVerifiedMember({
     }
   }
 
-  const desiredNickname = renderNicknameTemplate(configuration.nicknameTemplate, {
-    discord_username: member.user.username,
-    discord_display_name: member.displayName,
-    roblox_username: profile.username,
-    roblox_display_name: profile.displayName,
-  });
+  const nicknameEnabled = configuration.nicknameEnabled !== false;
   let nickname = member.displayName;
 
-  if (desiredNickname === member.displayName) {
-    nickname = desiredNickname;
-  } else if (member.id === guild.ownerId) {
-    warnings.push("Discord does not allow bots to change the server owner's nickname.");
-  } else {
-    try {
-      await member.setNickname(desiredNickname, reason);
+  if (nicknameEnabled) {
+    const desiredNickname = renderNicknameTemplate(configuration.nicknameTemplate, {
+      discord_username: member.user.username,
+      discord_display_name: member.displayName,
+      roblox_username: profile.username,
+      roblox_display_name: profile.displayName,
+    });
+    if (desiredNickname === member.displayName) {
       nickname = desiredNickname;
-    } catch (error) {
-      logSyncError(`Could not update nickname for ${member.id}`, error);
-      warnings.push("The configured nickname could not be applied.");
+    } else if (member.id === guild.ownerId) {
+      warnings.push("Discord does not allow bots to change the server owner's nickname.");
+    } else {
+      try {
+        await member.setNickname(desiredNickname, reason);
+        nickname = desiredNickname;
+      } catch (error) {
+        logSyncError(`Could not update nickname for ${member.id}`, error);
+        warnings.push("The configured nickname could not be applied.");
+      }
     }
   }
 
   return {
     addedRoles,
     removedRoles,
+    nicknameEnabled,
     nickname,
     warnings: [...new Set([...warnings, ...(bindEvaluation?.warnings ?? [])])],
     groupRoleName: groupMembershipKnown

@@ -4,6 +4,7 @@ import GuildConfiguration from "../schemas/guildConfiguration.js";
 import { err } from "../utils/logger.js";
 import {
   CONFIG_SCHEMA_VERSION,
+  NICKNAME_DISABLED_VALUE,
   NICKNAME_TEMPLATES,
   ROLE_HANDLING,
   SETUP_TIMEOUT_MS,
@@ -108,6 +109,7 @@ export async function startSetupSession(interaction, replacesExisting) {
     group: null,
     roleHandlingStrategy: null,
     verifiedRoleName: "Verified",
+    nicknameEnabled: true,
     nicknameTemplate: defaultNickname.value,
     nicknameTemplateLabel: defaultNickname.label,
     timeout: null,
@@ -220,6 +222,11 @@ async function handleSelect(interaction, session, action) {
   }
 
   if (action === "nickname_select") {
+    if (interaction.values[0] === NICKNAME_DISABLED_VALUE) {
+      session.nicknameEnabled = false;
+      await updateStep(interaction, session, 5);
+      return;
+    }
     const selection = NICKNAME_TEMPLATES.find(
       (option) => option.value === interaction.values[0]
     );
@@ -227,6 +234,7 @@ async function handleSelect(interaction, session, action) {
       await privateReply(interaction, "That nickname format is invalid.");
       return;
     }
+    session.nicknameEnabled = true;
     session.nicknameTemplate = selection.value;
     session.nicknameTemplateLabel = selection.label;
     await updateStep(interaction, session, 5);
@@ -276,6 +284,7 @@ function assertCompleteSession(session) {
   if (
     !session.group ||
     !Object.values(ROLE_HANDLING).includes(session.roleHandlingStrategy) ||
+    typeof session.nicknameEnabled !== "boolean" ||
     !NICKNAME_TEMPLATES.some((item) => item.value === session.nicknameTemplate)
   ) {
     throw new SetupValidationError(
@@ -305,7 +314,9 @@ async function confirmSetup(interaction, session) {
     assertCompleteSession(session);
     await interaction.update(buildProgress("Validating permissions..."));
 
-    const botMember = await validateSetupPermissions(interaction);
+    const botMember = await validateSetupPermissions(interaction, {
+      requireManageNicknames: session.nicknameEnabled,
+    });
     await interaction.guild.roles.fetch();
     if (botMember.roles.highest.id === interaction.guild.id) {
       throw new SetupValidationError(
@@ -360,6 +371,7 @@ async function confirmSetup(interaction, session) {
           robloxGroupName: session.group.name,
           verifiedRoleName: verified.role.name,
           verifiedRoleId: verified.role.id,
+          nicknameEnabled: session.nicknameEnabled,
           nicknameTemplate: session.nicknameTemplate,
           nicknameTemplateLabel: session.nicknameTemplateLabel,
           roleMappings: linkedRoles.mappings,
@@ -378,18 +390,22 @@ async function confirmSetup(interaction, session) {
     );
 
     const reusedCount = linkedRoles.mappings.length - linkedRoles.createdGroupRoles.length;
-    const preview = renderNicknameTemplate(session.nicknameTemplate, {
-      discord_username: "Builder",
-      discord_display_name: "Builder Pro",
-      roblox_username: "BridgelyUser",
-      roblox_display_name: "Bridgely",
-    });
     const notes = [
       `Connected **${escapeMarkdown(session.group.name).slice(0, 200)}** (ID ${session.group.id}).`,
       `Verified role: <@&${verified.role.id}> (${verified.created ? "created" : "reused"}).`,
       `Roblox roles: ${linkedRoles.mappings.length} linked (${linkedRoles.createdGroupRoles.length} created, ${reusedCount} reused).`,
-      `Nickname preview: **${preview}**.`,
     ];
+    if (session.nicknameEnabled) {
+      const preview = renderNicknameTemplate(session.nicknameTemplate, {
+        discord_username: "Builder",
+        discord_display_name: "Builder Pro",
+        roblox_username: "BridgelyUser",
+        roblox_display_name: "Bridgely",
+      });
+      notes.push(`Nickname preview: **${preview}**.`);
+    } else {
+      notes.push("Nickname updates: **disabled**.");
+    }
     if (deletedRoleNames.length) {
       notes.push(`${deletedRoleNames.length} manageable existing role(s) were removed.`);
     }

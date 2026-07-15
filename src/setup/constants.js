@@ -3,6 +3,7 @@ export const SETUP_TIMEOUT_MS = 2 * 60 * 1000;
 export const DISCORD_ROLE_NAME_LIMIT = 100;
 export const DISCORD_NICKNAME_LIMIT = 32;
 export const CONFIG_SCHEMA_VERSION = 1;
+export const NICKNAME_DISABLED_VALUE = "DISABLED";
 
 export const ROLE_HANDLING = Object.freeze({
   KEEP_EXISTING: "KEEP_EXISTING",

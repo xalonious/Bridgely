@@ -2,7 +2,6 @@ import { PermissionFlagsBits } from "discord.js";
 
 const BOT_GUILD_PERMISSIONS = Object.freeze([
   [PermissionFlagsBits.ManageRoles, "Manage Roles"],
-  [PermissionFlagsBits.ManageNicknames, "Manage Nicknames"],
 ]);
 
 const BOT_CHANNEL_PERMISSIONS = Object.freeze([
@@ -25,7 +24,10 @@ export function hasSetupPermission(member) {
   );
 }
 
-export async function validateSetupPermissions(interaction) {
+export async function validateSetupPermissions(
+  interaction,
+  { requireManageNicknames = false } = {}
+) {
   if (!interaction.inCachedGuild()) {
     throw new SetupValidationError("The setup command can only be used in a Discord server.");
   }
@@ -46,6 +48,12 @@ export async function validateSetupPermissions(interaction) {
   const missing = [];
   for (const [permission, label] of BOT_GUILD_PERMISSIONS) {
     if (!botMember.permissions.has(permission)) missing.push(label);
+  }
+  if (
+    requireManageNicknames &&
+    !botMember.permissions.has(PermissionFlagsBits.ManageNicknames)
+  ) {
+    missing.push("Manage Nicknames");
   }
 
   const channelPermissions = interaction.channel?.permissionsFor?.(botMember);
