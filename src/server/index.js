@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import express from "express";
-import { completeGameVerification, getPendingGameVerification } from "../verification/interactions.js";
+import { completeGameVerification } from "../verification/interactions.js";
 import { err, ok } from "../utils/logger.js";
 import { getGameVerificationConfig } from "./config.js";
 
@@ -39,30 +39,22 @@ export function startGameVerificationServer() {
       ? authorization.slice(prefix.length)
       : "";
     if (!received || !secretsMatch(received, config.apiKey)) {
-      response.status(401).json({ error: "Unauthorized" });
+      response.status(401).json({
+        verified: false,
+        error: "Unauthorized",
+      });
       return;
     }
     next();
   });
 
-  app.get("/verification/pending/:robloxUserId", (request, response) => {
-    const robloxUserId = Number(request.params.robloxUserId);
-    if (!Number.isSafeInteger(robloxUserId) || robloxUserId <= 0) {
-      response.status(400).json({ error: "Invalid Roblox user ID" });
-      return;
-    }
-    const pending = getPendingGameVerification(robloxUserId);
-    if (!pending) {
-      response.status(404).json({ pending: false });
-      return;
-    }
-    response.json({ pending: true, expiresAt: pending.expiresAt.toISOString() });
-  });
-
   app.post("/verification/complete", async (request, response) => {
     const robloxUserId = Number(request.body?.robloxUserId);
     if (!Number.isSafeInteger(robloxUserId) || robloxUserId <= 0) {
-      response.status(400).json({ error: "Invalid Roblox user ID" });
+      response.status(400).json({
+        verified: false,
+        error: "Invalid Roblox user ID",
+      });
       return;
     }
     try {
@@ -70,17 +62,26 @@ export function startGameVerificationServer() {
       response.status(result.status).json(result.body);
     } catch (error) {
       console.error(err(`[Game Verification Server] ${error?.stack || error}`));
-      response.status(500).json({ error: "Verification could not be completed" });
+      response.status(500).json({
+        verified: false,
+        error: "Verification could not be completed",
+      });
     }
   });
 
   app.use((error, request, response, next) => {
     if (error instanceof SyntaxError) {
-      response.status(400).json({ error: "Invalid JSON body" });
+      response.status(400).json({
+        verified: false,
+        error: "Invalid JSON body",
+      });
       return;
     }
     console.error(err(`[Game Verification Server] ${error?.stack || error}`));
-    response.status(500).json({ error: "Internal server error" });
+    response.status(500).json({
+      verified: false,
+      error: "Internal server error",
+    });
   });
 
   httpServer = app.listen(config.port, "0.0.0.0", () => {

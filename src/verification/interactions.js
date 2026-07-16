@@ -682,22 +682,28 @@ function findPendingGameSessions(robloxUserId) {
   return pending;
 }
 
-export function getPendingGameVerification(robloxUserId) {
-  return findPendingGameSessions(robloxUserId).find(
-    (session) => session.status === VERIFICATION_STATUS.ACTIVE
-  ) || null;
-}
-
 export async function completeGameVerification(robloxUserId) {
   const pending = findPendingGameSessions(robloxUserId);
   const active = pending.filter(
     (session) => session.status === VERIFICATION_STATUS.ACTIVE
   );
   if (!pending.length) {
-    return { status: 404, body: { error: "No pending verification" } };
+    return {
+      status: 404,
+      body: {
+        verified: false,
+        error: "No pending verification",
+      },
+    };
   }
   if (!active.length) {
-    return { status: 409, body: { error: "Verification is already processing" } };
+    return {
+      status: 404,
+      body: {
+        verified: false,
+        error: "No pending verification",
+      },
+    };
   }
 
   for (const session of active) {
@@ -715,7 +721,6 @@ export async function completeGameVerification(robloxUserId) {
   }
 
   let completed = 0;
-  let conflicts = 0;
   for (const session of active) {
     try {
       const result = await finalizeVerificationSession(
@@ -725,7 +730,6 @@ export async function completeGameVerification(robloxUserId) {
       );
       if (result.completed) completed += 1;
       if (result.conflict) {
-        conflicts += 1;
         try {
           await session.interaction.editReply(
             buildVerificationStatus(
@@ -745,12 +749,18 @@ export async function completeGameVerification(robloxUserId) {
   }
 
   if (completed) {
-    return { status: 200, body: { verified: true, completed } };
+    return {
+      status: 200,
+      body: { verified: true, completed },
+    };
   }
-  if (conflicts) {
-    return { status: 409, body: { error: "Discord or Roblox account already linked" } };
-  }
-  return { status: 500, body: { error: "Verification could not be completed" } };
+  return {
+    status: 500,
+    body: {
+      verified: false,
+      error: "Verification could not be completed",
+    },
+  };
 }
 
 async function handleConfirm(interaction, parsed) {
