@@ -1,11 +1,16 @@
 import "dotenv/config";
 
-import areCommandsDifferent from "../../utils/areCommandsDifferent.js";
 import getApplicationCommands from "../../utils/getApplicationCommands.js";
 import getLocalCommands from "../../utils/getLocalCommands.js";
 import { ok, warn } from "../../utils/logger.js";
 
 const server = process.env.SERVER_ID;
+
+const toApplicationCommandData = ({ name, description, options = [] }) => ({
+  name,
+  description,
+  options,
+});
 
 export default async (client) => {
   try {
@@ -31,28 +36,22 @@ export default async (client) => {
     for (const localCommand of localCommands) {
       if (localCommand.deleted) continue;
 
-      const { name, description, options } = localCommand;
+      const commandData = toApplicationCommandData(localCommand);
+      const { name } = commandData;
 
       const existingCommand = applicationCommands.cache.find(
         (cmd) => cmd.name === name
       );
 
       if (existingCommand) {
-        if (areCommandsDifferent(existingCommand, localCommand)) {
-          await applicationCommands.edit(existingCommand.id, {
-            description,
-            options: options || [],
-          });
+        if (!existingCommand.equals(commandData, true)) {
+          await applicationCommands.edit(existingCommand.id, commandData);
 
           edited++;
           console.log(`🔀 Edited command ${name}`);
         }
       } else {
-        await applicationCommands.create({
-          name,
-          description,
-          options,
-        });
+        await applicationCommands.create(commandData);
 
         created++;
         console.log(`👍 Registered command ${name}`);
