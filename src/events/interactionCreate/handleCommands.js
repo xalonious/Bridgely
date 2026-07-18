@@ -1,7 +1,6 @@
 import "dotenv/config";
 
 import { MessageFlags } from "discord.js";
-import { err } from "../../utils/logger.js";
 import getLocalCommands from "../../utils/getLocalCommands.js";
 
 const dev = process.env.DEV_ID;
@@ -12,7 +11,7 @@ export default async (client, interaction) => {
 
     const testmode = false;
     if (testmode && interaction.user.id !== dev) {
-        return interaction.reply("The bot is currently in test mode, pls try again later");
+        return interaction.reply("The bot is currently in test mode, please try again later");
     }
 
     const localCommands = await getLocalCommands();
@@ -20,27 +19,18 @@ export default async (client, interaction) => {
 
     if (!commandObject) return;
 
-    if (commandObject.devOnly && !devs.includes(interaction.user.id)) {
+    if (commandObject.devOnly && !devs.includes(interaction.member.id)) {
         return interaction.reply("Only the developer is able to use this command.");
     }
 
-    if (commandObject.permissionsRequired?.length > 0 && !interaction.inCachedGuild()) {
-        return interaction.reply({
-            content: "That command can only be used in a Discord server.",
-            flags: MessageFlags.Ephemeral,
-        });
-    }
-
-    if (commandObject.permissionsRequired?.length > 0 &&
-        !commandObject.permissionsRequired.some((permission) => interaction.member.permissions.has(permission))) {
+    if (commandObject.permissionsRequired?.every((permission) => !interaction.member.permissions.has(permission))) {
         return interaction.reply({
             content: "You do not have permission to run that command!",
             flags: MessageFlags.Ephemeral,
         });
     }
 
-    if (commandObject.rolesRequired?.length > 0 &&
-        (!interaction.inCachedGuild() || !interaction.member.roles.cache.some((role) => commandObject.rolesRequired.includes(role.id)))) {
+    if (commandObject.rolesRequired?.length > 0 && !interaction.member.roles.cache.some((role) => commandObject.rolesRequired.includes(role.id))) {
         return interaction.reply({
             content: "You do not have permission to run that command!",
             flags: MessageFlags.Ephemeral,
@@ -50,22 +40,12 @@ export default async (client, interaction) => {
     try {
         await commandObject.run(client, interaction);
     } catch (error) {
-        console.error(err(`[Command:${interaction.commandName}] ${error?.stack || error}`));
+        console.error(error);
 
-        if (interaction.deferred && !interaction.replied) {
-            await interaction.editReply({
-                content: "There was an unexpected error while running this command.",
-            });
-        } else if (interaction.replied) {
-            await interaction.followUp({
-                content: "There was an unexpected error while running this command.",
-                flags: MessageFlags.Ephemeral,
-            });
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp(`There was an error while running this command. ${error}`);
         } else {
-            await interaction.reply({
-                content: "There was an unexpected error while running this command.",
-                flags: MessageFlags.Ephemeral,
-            });
+            await interaction.reply(`There was an error while running this command. ${error}`);
         }
     }
 };
