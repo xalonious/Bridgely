@@ -21,6 +21,7 @@ export async function syncVerifiedMember({
   const addedRoles = [];
   const removedRoles = [];
   const warnings = [];
+  const hierarchyBlockedRoles = new Map();
   const reason = `Bridgely verification for @${profile.username} (${profile.id})`;
   const roleMappings = configuration.roleMappings ?? [];
   const mappedRoleIds = new Set(
@@ -81,7 +82,7 @@ export async function syncVerifiedMember({
 
   for (const role of rolesToAdd) {
     if (!role.editable) {
-      warnings.push(`The role **${role.name}** is above Bridgely's highest role.`);
+      hierarchyBlockedRoles.set(role.id, role);
       continue;
     }
     try {
@@ -95,7 +96,7 @@ export async function syncVerifiedMember({
 
   for (const role of rolesToRemove) {
     if (!role.editable) {
-      warnings.push(`The outdated role **${role.name}** could not be removed.`);
+      hierarchyBlockedRoles.set(role.id, role);
       continue;
     }
     try {
@@ -105,6 +106,15 @@ export async function syncVerifiedMember({
       logSyncError(`Could not remove role ${role.id}`, error);
       warnings.push(`The role **${role.name}** could not be removed.`);
     }
+  }
+
+  if (hierarchyBlockedRoles.size) {
+    const roles = [...hierarchyBlockedRoles.values()]
+      .map((role) => `<@&${role.id}>`)
+      .join(", ");
+    warnings.push(
+      `Bridgely could not manage these roles because they are above its highest role: ${roles}. Move Bridgely's bot role above them in **Server Settings → Roles**, then run **/getroles** again.`
+    );
   }
 
   const nicknameEnabled = configuration.nicknameEnabled !== false;
