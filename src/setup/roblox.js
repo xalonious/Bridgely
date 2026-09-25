@@ -11,52 +11,6 @@ export class RobloxSetupError extends Error {
   }
 }
 
-export function parseRobloxGroupId(input) {
-  const value = String(input ?? "").trim();
-  if (!value) throw new RobloxSetupError("Enter a Roblox group ID or group URL.");
-
-  let idText;
-  if (/^\d+$/.test(value)) {
-    idText = value;
-  } else {
-    let url;
-    try {
-      url = new URL(value);
-    } catch {
-      throw new RobloxSetupError("Enter a numeric group ID or a valid roblox.com community URL.");
-    }
-
-    const hostname = url.hostname.toLocaleLowerCase();
-    const hasValidHost = hostname === "roblox.com" || hostname === "www.roblox.com";
-    if (
-      url.protocol !== "https:" ||
-      !hasValidHost ||
-      url.username ||
-      url.password ||
-      url.port
-    ) {
-      throw new RobloxSetupError("Enter a numeric group ID or a valid roblox.com community URL.");
-    }
-
-    const segments = url.pathname.split("/").filter(Boolean);
-    const typeIndex = segments.findIndex((segment) =>
-      ["communities", "groups"].includes(segment.toLocaleLowerCase())
-    );
-    idText = typeIndex >= 0 ? segments[typeIndex + 1] : null;
-
-    if (!idText || !/^\d+$/.test(idText)) {
-      throw new RobloxSetupError("Enter a numeric group ID or a valid roblox.com community URL.");
-    }
-  }
-
-  const groupId = Number(idText);
-  if (!Number.isSafeInteger(groupId) || groupId <= 0) {
-    throw new RobloxSetupError("The Roblox group ID must be a positive safe integer.");
-  }
-
-  return groupId;
-}
-
 export async function fetchRobloxGroup(groupId) {
   try {
     const group = await fetchApi(getGroupsGroupid, { groupId });

@@ -1,5 +1,6 @@
 import GuildConfiguration from "../schemas/guildConfiguration.js";
 import { fetchRobloxGroupRoles } from "../setup/roblox.js";
+import { assertConfiguredGroup } from "../setup/groupConfiguration.js";
 import {
   createOrReuseRobloxRoles,
   positionCreatedRobloxRoles,
@@ -47,6 +48,7 @@ async function restoreRenamedRoles(renamedRoles) {
 }
 
 async function inspectAndRepairGroupRoles(guild, configuration) {
+  assertConfiguredGroup(configuration);
   const reason = "Bridgely group role integrity repair";
   const createdRoles = [];
   const renamedRoles = [];

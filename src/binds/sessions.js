@@ -3,6 +3,7 @@ import { MessageFlags } from "discord.js";
 import Bind from "../schemas/bind.js";
 import GuildConfiguration from "../schemas/guildConfiguration.js";
 import { hasSetupPermission } from "../setup/permissions.js";
+import { assertConfiguredGroup, GroupConfigurationError } from "../setup/groupConfiguration.js";
 import { fetchRobloxGroupRoles } from "../setup/roblox.js";
 import { rollbackCreatedRoles, sanitizeDiscordRoleName } from "../setup/roles.js";
 import { err } from "../utils/logger.js";
@@ -113,6 +114,13 @@ export async function startBindManager(interaction) {
   const configuration = await GuildConfiguration.findOne({ guildId: interaction.guildId }).lean();
   if (!configuration) {
     await privateReply(interaction, "Run **/setup** before configuring binds.");
+    return;
+  }
+  try {
+    assertConfiguredGroup(configuration);
+  } catch (error) {
+    await privateReply(interaction, error instanceof GroupConfigurationError
+      ? error.message : "The configured Roblox group is unavailable.");
     return;
   }
 

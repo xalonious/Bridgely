@@ -2,12 +2,13 @@ import "dotenv/config";
 
 import { MessageFlags } from "discord.js";
 import getLocalCommands from "../../utils/getLocalCommands.js";
+import { err } from "../../utils/logger.js";
 
 const dev = process.env.DEV_ID;
 const devs = [dev].filter(Boolean);
 
 export default async (client, interaction) => {
-    if (!interaction.isChatInputCommand()) return;
+    if (!interaction.isChatInputCommand() && !interaction.isAutocomplete()) return;
 
     const testmode = false;
     if (testmode && interaction.user.id !== dev) {
@@ -18,6 +19,17 @@ export default async (client, interaction) => {
     const commandObject = localCommands.find((cmd) => cmd.name === interaction.commandName);
 
     if (!commandObject) return;
+
+    if (interaction.isAutocomplete()) {
+        try {
+            if (commandObject.autocomplete) await commandObject.autocomplete(interaction);
+            else await interaction.respond([]);
+        } catch (error) {
+            console.error(err(`[Commands] Autocomplete failed: ${error?.stack || error}`));
+            if (!interaction.responded) await interaction.respond([]).catch(() => {});
+        }
+        return;
+    }
 
     if (commandObject.devOnly && !devs.includes(interaction.member.id)) {
         return interaction.reply("Only the developer is able to use this command.");
@@ -40,12 +52,12 @@ export default async (client, interaction) => {
     try {
         await commandObject.run(client, interaction);
     } catch (error) {
-        console.error(error);
+        console.error(err(`[Commands] ${interaction.commandName} failed: ${error?.stack || error}`));
 
         if (interaction.replied || interaction.deferred) {
-            await interaction.followUp(`There was an error while running this command. ${error}`);
+            await interaction.followUp("There was an error while running this command.");
         } else {
-            await interaction.reply(`There was an error while running this command. ${error}`);
+            await interaction.reply("There was an error while running this command.");
         }
     }
 };

@@ -12,7 +12,7 @@ export default async (client) => {
   if (robloxCloudKey) configureServer({ cloudKey: robloxCloudKey });
   else {
     console.log(
-      warn("⚠️ ROBLOX_CLOUD_KEY is not configured; multi-role Roblox sync will use the legacy single-role fallback.")
+      warn("⚠️ ROBLOX_CLOUD_KEY is not configured; multi-role sync will use the legacy fallback and ranking commands will be unavailable.")
     );
   }
 

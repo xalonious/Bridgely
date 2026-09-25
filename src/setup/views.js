@@ -22,7 +22,6 @@ import { renderNicknameTemplate } from "./nickname.js";
 const BUTTON_EMOJIS = Object.freeze({
   replace_continue: "🔄",
   welcome_next: "➡️",
-  group_enter: "🔎",
   group_confirm: "✅",
   group_back: "⬅️",
   strategy_back: "⬅️",
@@ -123,9 +122,7 @@ function buildGroupStep(session) {
   const group = session.group;
   const groupEmbed = embed(
     "🔗 Connect a Roblox Group",
-    group
-      ? "This group was resolved directly through Roblox. Confirm it to continue, or enter a different group."
-      : "Enter a numeric Roblox group ID or a full roblox.com community URL. Bridgely will validate it directly with Roblox.",
+    "This group was detected from ROBLOX_GROUP_ID and checked with Roblox. Confirm it to continue.",
     2
   );
 
@@ -145,16 +142,7 @@ function buildGroupStep(session) {
   }
 
   const choices = new ActionRowBuilder();
-  if (group) {
-    choices.addComponents(
-      button(session, "group_confirm", "Confirm Group", ButtonStyle.Success),
-      button(session, "group_enter", "Enter Different Group", ButtonStyle.Primary)
-    );
-  } else {
-    choices.addComponents(
-      button(session, "group_enter", "Enter Roblox Group", ButtonStyle.Primary)
-    );
-  }
+  choices.addComponents(button(session, "group_confirm", "Confirm Group", ButtonStyle.Success));
   choices.addComponents(
     button(session, "group_back", "Back"),
     button(session, "cancel", "Cancel", ButtonStyle.Danger)
@@ -341,21 +329,6 @@ export function buildStep(session) {
     case 6: return buildReviewStep(session);
     default: return buildWelcome(session);
   }
-}
-
-export function buildGroupModal(session) {
-  const input = new TextInputBuilder()
-    .setCustomId("group_input")
-    .setLabel("Roblox group ID or URL")
-    .setPlaceholder("123456 or https://roblox.com/communities/123456")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-    .setMaxLength(200);
-
-  return new ModalBuilder()
-    .setCustomId(customId(session, "group_modal"))
-    .setTitle("🔗 Connect a Roblox Group")
-    .addComponents(new ActionRowBuilder().addComponents(input));
 }
 
 export function buildVerifiedRoleModal(session) {

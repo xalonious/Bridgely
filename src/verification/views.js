@@ -193,17 +193,18 @@ export function buildVerificationStatus(title, description, color = VERIFICATION
         .setDescription(description),
     ],
     components: [],
+    allowedMentions: { parse: [] },
   };
 }
 
-function formatRoleMentions(roles, emptyText) {
+function formatRoleNames(roles, emptyText) {
   if (!roles.length) return emptyText;
-  const mentions = roles.map((role) => `<@&${role.id}>`);
+  const names = roles.map((role) => escapeMarkdown(role.name));
   let value = "";
-  for (let index = 0; index < mentions.length; index += 1) {
-    const next = value ? `${value}, ${mentions[index]}` : mentions[index];
+  for (let index = 0; index < names.length; index += 1) {
+    const next = value ? `${value}, ${names[index]}` : names[index];
     if (next.length > 980) {
-      return `${value}\n…and ${mentions.length - index} more`;
+      return `${value}\n…and ${names.length - index} more`;
     }
     value = next;
   }
@@ -219,11 +220,11 @@ export function buildMemberUpdated({
   discordUserId = null,
   isSelf = true,
 }) {
-  const addedRoles = formatRoleMentions(
+  const addedRoles = formatRoleNames(
     syncResult.addedRoles,
     "None — already up to date"
   );
-  const removedRoles = formatRoleMentions(syncResult.removedRoles, "None");
+  const removedRoles = formatRoleNames(syncResult.removedRoles, "None");
   const nicknameEnabled = syncResult.nicknameEnabled !== false;
   const fields = [
     { name: "➕ Added Roles", value: addedRoles, inline: true },
@@ -268,7 +269,7 @@ export function buildMemberUpdated({
     });
   }
 
-  return { embeds: [embed], components: [] };
+  return { embeds: [embed], components: [], allowedMentions: { parse: [] } };
 }
 
 export function buildUnlinkConfirmation(link, notice = null) {
@@ -309,7 +310,7 @@ export function buildUnlinkConfirmation(link, notice = null) {
 export function buildUnlinkComplete(removedRoles) {
   return buildVerificationStatus(
     "🔓 Account Unlinked",
-    `Your Roblox account was unlinked successfully.\n\n**Removed Roles**\n${formatRoleMentions(removedRoles, "None")}`,
+    `Your Roblox account was unlinked successfully.\n\n**Removed Roles**\n${formatRoleNames(removedRoles, "None")}`,
     0x57f287
   );
 }

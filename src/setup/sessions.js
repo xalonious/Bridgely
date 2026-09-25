@@ -11,10 +11,10 @@ import {
 } from "./constants.js";
 import { renderNicknameTemplate } from "./nickname.js";
 import { SetupValidationError, validateSetupPermissions } from "./permissions.js";
+import { configuredGroupId, GroupConfigurationError } from "./groupConfiguration.js";
 import {
   fetchRobloxGroup,
   fetchRobloxGroupRoles,
-  parseRobloxGroupId,
   RobloxSetupError,
 } from "./roblox.js";
 import {
@@ -27,7 +27,6 @@ import {
 } from "./roles.js";
 import {
   buildExistingConfigurationWarning,
-  buildGroupModal,
   buildProgress,
   buildStatus,
   buildStep,
@@ -96,6 +95,20 @@ export async function startSetupSession(interaction, replacesExisting) {
     return null;
   }
 
+  await interaction.deferReply();
+
+  let group;
+  try {
+    group = await fetchRobloxGroup(configuredGroupId());
+  } catch (error) {
+    if (!(error instanceof GroupConfigurationError || error instanceof RobloxSetupError)) {
+      logSetupError("Could not load configured group", error);
+    }
+    await interaction.editReply(error instanceof GroupConfigurationError || error instanceof RobloxSetupError
+      ? error.message : "The configured Roblox group could not be loaded.");
+    return null;
+  }
+
   const defaultNickname = NICKNAME_TEMPLATES[0];
   const session = {
     id: randomUUID().replaceAll("-", "").slice(0, 12),
@@ -106,7 +119,7 @@ export async function startSetupSession(interaction, replacesExisting) {
     step: 1,
     replacesExisting,
     processing: false,
-    group: null,
+    group,
     roleHandlingStrategy: null,
     verifiedRoleName: "Verified",
     nicknameEnabled: true,
@@ -120,7 +133,7 @@ export async function startSetupSession(interaction, replacesExisting) {
   armTimeout(session);
 
   try {
-    await interaction.reply({
+    await interaction.editReply({
       ...(replacesExisting
         ? buildExistingConfigurationWarning(session)
         : buildStep(session)),
@@ -157,16 +170,12 @@ async function handleButton(interaction, session, action) {
     case "welcome_next":
       await updateStep(interaction, session, 2);
       return;
-    case "group_enter":
-      armTimeout(session);
-      await interaction.showModal(buildGroupModal(session));
-      return;
     case "group_back":
       await updateStep(interaction, session, 1);
       return;
     case "group_confirm":
-      if (!session.group) {
-        await privateReply(interaction, "Validate a Roblox group before continuing.");
+      if (session.group?.id !== configuredGroupId()) {
+        await privateReply(interaction, "The configured Roblox group changed. Restart /setup.");
         return;
       }
       await updateStep(interaction, session, 3);
@@ -242,27 +251,6 @@ async function handleSelect(interaction, session, action) {
 }
 
 async function handleModal(interaction, session, action) {
-  if (action === "group_modal") {
-    await interaction.deferUpdate();
-    try {
-      const groupId = parseRobloxGroupId(
-        interaction.fields.getTextInputValue("group_input")
-      );
-      const group = await fetchRobloxGroup(groupId);
-      session.group = group;
-      session.step = 2;
-      armTimeout(session);
-      await session.commandInteraction.editReply(buildStep(session));
-    } catch (error) {
-      const message = error instanceof RobloxSetupError
-        ? error.message
-        : "The Roblox group could not be validated. Please try again.";
-      if (!(error instanceof RobloxSetupError)) logSetupError("Group validation failed", error);
-      await interaction.followUp({ content: message, flags: MessageFlags.Ephemeral });
-    }
-    return;
-  }
-
   if (action === "verified_modal") {
     try {
       session.verifiedRoleName = validateVerifiedRoleName(
@@ -312,6 +300,9 @@ async function confirmSetup(interaction, session) {
 
   try {
     assertCompleteSession(session);
+    if (session.group.id !== configuredGroupId()) {
+      throw new SetupValidationError("ROBLOX_GROUP_ID changed during setup. Restart /setup.");
+    }
     await interaction.update(buildProgress("Validating permissions..."));
 
     const botMember = await validateSetupPermissions(interaction, {
@@ -325,8 +316,8 @@ async function confirmSetup(interaction, session) {
     }
 
     await editProgress(session, "Fetching Roblox group roles...");
-    session.group = await fetchRobloxGroup(session.group.id);
-    const robloxRoles = await fetchRobloxGroupRoles(session.group.id);
+    session.group = await fetchRobloxGroup(configuredGroupId());
+    const robloxRoles = await fetchRobloxGroupRoles(configuredGroupId());
 
     await editProgress(session, "Preparing Discord roles...");
     const reason = `Bridgely setup by ${interaction.user.tag} (${interaction.user.id})`;
@@ -428,7 +419,7 @@ async function confirmSetup(interaction, session) {
     for (const failure of rollbackFailures) {
       logSetupError(`Could not roll back role ${failure.roleName}`, failure.error);
     }
-    const userMessage = error instanceof SetupValidationError || error instanceof RobloxSetupError
+    const userMessage = error instanceof SetupValidationError || error instanceof RobloxSetupError || error instanceof GroupConfigurationError
       ? error.message
       : "Setup could not be completed because an unexpected error occurred.";
     const warnings = [];
@@ -493,7 +484,7 @@ export async function handleSetupInteraction(interaction) {
   } catch (error) {
     session.processing = false;
     logSetupError("Interaction handling failed", error);
-    const message = error instanceof SetupValidationError || error instanceof RobloxSetupError
+    const message = error instanceof SetupValidationError || error instanceof RobloxSetupError || error instanceof GroupConfigurationError
       ? error.message
       : "That setup action could not be completed. Please try again.";
     try {

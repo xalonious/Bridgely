@@ -3,6 +3,7 @@ import { MessageFlags, escapeMarkdown } from "discord.js";
 import GuildConfiguration from "../schemas/guildConfiguration.js";
 import Bind from "../schemas/bind.js";
 import VerifiedUser from "../schemas/verifiedUser.js";
+import { assertConfiguredGroup, GroupConfigurationError } from "../setup/groupConfiguration.js";
 import { err } from "../utils/logger.js";
 import { generateVerificationCode } from "./code.js";
 import { evaluateBinds } from "../binds/evaluator.js";
@@ -143,11 +144,19 @@ async function requireConfiguredGuild(interaction) {
     await privateReply(interaction, "Verification can only be used in a Discord server.");
     return false;
   }
-  if (!await GuildConfiguration.exists({ guildId: interaction.guildId })) {
+  const configuration = await GuildConfiguration.findOne({ guildId: interaction.guildId }).lean();
+  if (!configuration) {
     await privateReply(
       interaction,
       "Bridgely has not been configured in this server yet. Ask an administrator to run `/setup`."
     );
+    return false;
+  }
+  try {
+    assertConfiguredGroup(configuration);
+  } catch (error) {
+    await privateReply(interaction, error instanceof GroupConfigurationError
+      ? error.message : "The configured Roblox group is unavailable.");
     return false;
   }
   return true;
@@ -189,6 +198,12 @@ async function synchronizeVerifiedLink(interaction, link, existingProfile = null
     syncResult.warnings.push(
       "The server configuration could not be loaded, so roles and nickname were not updated."
     );
+    return { profile, syncResult };
+  }
+  try {
+    assertConfiguredGroup(configuration);
+  } catch (error) {
+    syncResult.warnings.push(error.message);
     return { profile, syncResult };
   }
   syncResult.nicknameEnabled = configuration.nicknameEnabled !== false;
