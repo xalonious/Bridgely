@@ -1,7 +1,8 @@
-import { EmbedBuilder } from "discord.js";
+import { EmbedBuilder, escapeMarkdown } from "discord.js";
+import { fetchRobloxHeadshot } from "../verification/roblox.js";
 import { warn } from "../utils/logger.js";
 
-export async function logRankOperation({ interaction, action, executor, target, role, groupId }) {
+export async function logRankOperation({ interaction, action, executor, target, role }) {
   const channelId = process.env.LOG_CHANNEL_ID?.trim();
   if (!channelId) return;
   try {
@@ -10,21 +11,24 @@ export async function logRankOperation({ interaction, action, executor, target, 
     if (!channel?.isTextBased() || typeof channel.send !== "function") {
       throw new Error("The configured channel cannot receive messages.");
     }
+    let avatarUrl;
+    try {
+      avatarUrl = await fetchRobloxHeadshot(Number(target.id));
+    } catch (error) {
+      console.error(warn(`[Ranking] Could not load audit thumbnail: ${error?.message || error}`));
+    }
+
+    const targetName = escapeMarkdown(target.username);
+    const rankName = escapeMarkdown(role.displayName);
     const embed = new EmbedBuilder()
       .setColor(action === "add" ? 0x2ecc71 : 0xe67e22)
-      .setTitle(action === "add" ? "Add Rank" : "Remove Rank")
-      .addFields(
-        { name: "Executor Discord", value: `${interaction.user.username} (${interaction.user.id})` },
-        { name: "Executor Roblox", value: `${executor.robloxUsername} (${executor.robloxUserId})` },
-        { name: "Target Roblox", value: `${target.username} (${target.id})` },
-        { name: "Rank", value: `${role.displayName} (${role.id})` },
-        { name: "Group", value: String(groupId) },
-        { name: "Discord server", value: `${interaction.guild?.name ?? "Unknown"} (${interaction.guildId})` },
+      .setTitle(action === "add" ? "User rank added" : "User rank removed")
+      .setDescription(
+        `Rank **${rankName}** was ${action === "add" ? "added to" : "removed from"} **${targetName}**.\n\n` +
+        `Action performed by <@${interaction.user.id}> (${escapeMarkdown(executor.robloxUsername)}).`
       )
       .setTimestamp();
-    if (target.discordUser) {
-      embed.addFields({ name: "Target Discord", value: `${target.discordUser.username} (${target.discordUser.id})` });
-    }
+    if (avatarUrl) embed.setThumbnail(avatarUrl);
     await channel.send({ embeds: [embed], allowedMentions: { parse: [] } });
   } catch (error) {
     console.error(warn(`[Ranking] Audit log failed: ${error?.message || error}`));

@@ -1,5 +1,5 @@
 import { canManageRole, resolveExecutor, RankingError } from "./authorization.js";
-import { changeMemberRole, getMembership, groupId, isAssignableRole, RobloxError } from "./roblox.js";
+import { changeMemberRole, getMembership, isAssignableRole, RobloxError } from "./roblox.js";
 import { logRankOperation } from "./audit.js";
 import GuildConfiguration from "../schemas/guildConfiguration.js";
 import { assertConfiguredGroup } from "../setup/groupConfiguration.js";
@@ -49,6 +49,6 @@ export async function changeRobloxRole({ interaction, target, roleId, action }) 
   if (nowHeld !== (action === "add") || result.user !== membership.user) {
     throw new RobloxError("Roblox did not confirm the requested role state.");
   }
-  await logRankOperation({ interaction, action, executor, target, role, groupId: groupId() });
+  await logRankOperation({ interaction, action, executor, target, role });
   return { role, executor, target, membership: result };
 }
