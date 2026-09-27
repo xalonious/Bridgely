@@ -8,9 +8,9 @@ export function getGameVerificationConfig() {
     .trim()
     .toLowerCase() === "true";
   const port = parsePositiveInteger(process.env.GAME_VERIFICATION_PORT) || 3000;
-  const placeId = parsePositiveInteger(process.env.ROBLOX_VERIFICATION_PLACE_ID);
+  const placeId = parsePositiveInteger(process.env.GAME_VERIFICATION_PLACE_ID);
   let gameUrl = null;
-  const configuredGameUrl = process.env.ROBLOX_VERIFICATION_GAME_URL?.trim();
+  const configuredGameUrl = process.env.GAME_VERIFICATION_GAME_URL?.trim();
   if (configuredGameUrl) {
     try {
       const url = new URL(configuredGameUrl);

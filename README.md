@@ -77,8 +77,8 @@ manage. Enable the Server Members Intent in the Discord Developer Portal.
 | `GAME_VERIFICATION_ENABLED` | Set to `true` to enable game verification |
 | `GAME_VERIFICATION_PORT` | Port used by the optional Express verification server |
 | `GAME_VERIFICATION_API_KEY` | Bearer API key shared with the Roblox server script |
-| `ROBLOX_VERIFICATION_GAME_URL` | Roblox game URL shown to members |
-| `ROBLOX_VERIFICATION_PLACE_ID` | Optional alternative to the full game URL |
+| `GAME_VERIFICATION_GAME_URL` | Roblox game URL shown to members |
+| `GAME_VERIFICATION_PLACE_ID` | Optional alternative to the full game URL |
 
 The game-verification variables are optional when
 `GAME_VERIFICATION_ENABLED` is `false`.
@@ -115,7 +115,7 @@ To enable verification through a Roblox game:
 GAME_VERIFICATION_ENABLED="true"
 GAME_VERIFICATION_PORT="1123"
 GAME_VERIFICATION_API_KEY="YOUR_PRIVATE_API_KEY"
-ROBLOX_VERIFICATION_GAME_URL="https://www.roblox.com/games/YOUR_PLACE_ID/YOUR-GAME"
+GAME_VERIFICATION_GAME_URL="https://www.roblox.com/games/YOUR_PLACE_ID/YOUR-GAME"
 ```
 
 Copy [`src/server/server.luau`](src/server/server.luau) into
